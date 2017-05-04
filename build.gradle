@@ -1,0 +1,67 @@
+buildscript {
+    ext.gradle_docker_version = '1.2'
+    ext.dependency_management_plugin_version = '1.0.2.RELEASE'
+    ext.logback_classic_version = '1.2.2'
+    ext.servlet_api_version = '3.1.0'
+    ext.jersey_version = '2.25.1'
+
+    repositories {
+        mavenCentral()
+        jcenter()
+    }
+
+    dependencies {
+        classpath "se.transmode.gradle:gradle-docker:$gradle_docker_version"
+        classpath "io.spring.gradle:dependency-management-plugin:$dependency_management_plugin_version"
+        classpath 'org.akhikhl.gretty:gretty:+'
+    }
+}
+
+apply plugin: "io.spring.dependency-management"
+apply plugin: 'java'
+apply plugin: 'war'
+apply plugin: 'org.akhikhl.gretty'
+apply plugin: 'docker'
+
+war {
+    version =  '1.0-SNAPSHOT'
+}
+
+repositories {
+    mavenCentral()
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+
+dependencyManagement {
+    imports {
+        mavenBom "org.glassfish.jersey:jersey-bom:$jersey_version"
+    }
+}
+
+dependencies {
+    compile "ch.qos.logback:logback-classic:$logback_classic_version"
+    compile 'org.glassfish.jersey.containers:jersey-container-servlet-core'
+    compile 'org.glassfish.jersey.media:jersey-media-json-jackson'
+    providedCompile "javax.servlet:javax.servlet-api:$servlet_api_version"
+}
+
+task copyToDocker(type: Copy, dependsOn: build) {
+    from war
+    into 'build/docker'
+    rename { 'ROOT.war' }
+}
+
+task buildDocker(type: Docker, dependsOn: copyToDocker) {
+    push = true
+    applicationName = jar.baseName
+    dockerfile = file('src/main/docker/Dockerfile')
+    doFirst {
+        copy {
+            from jar
+            into stageDir
+        }
+    }
+}
