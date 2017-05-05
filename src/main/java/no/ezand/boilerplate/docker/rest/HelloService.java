@@ -31,7 +31,7 @@ public class HelloService {
     class Greeting {
         private String msg;
 
-        public Greeting(String msg) {
+        Greeting(String msg) {
             this.msg = msg;
         }
 
